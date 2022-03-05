@@ -1,0 +1,14 @@
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterSupplyChain
+metadata:
+  name: supply-chain
+spec:
+  selector:
+    workload-type: pre-built
+
+  resources:
+    - name: deploy
+      templateRef:
+        kind: ClusterTemplate
+        name: app-deploy

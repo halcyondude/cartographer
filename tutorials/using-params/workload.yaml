@@ -1,0 +1,13 @@
+---
+apiVersion: carto.run/v1alpha1
+kind: Workload
+metadata:
+  name: hello
+  labels:
+    workload-type: pre-built
+spec:
+  image: <SOME-IMAGE-IN-A-REGISTRY-REQUIRING-SECRETS-TO-PULL>
+  serviceAccountName: cartographer-pre-built-sa
+  params:
+    - name: image-pull-sa-name
+      value: unconventionally-named-service-account
