@@ -1,0 +1,28 @@
+---
+apiVersion: carto.run/v1alpha1
+kind: ClusterSupplyChain
+metadata:
+  name: source-code-supply-chain
+spec:
+  selector:
+    workload-type: source-code
+
+  resources:
+    - name: lint-source
+      templateRef:
+        kind: ClusterSourceTemplate
+        Name: source-linter
+    - name: build-image
+      templateRef:
+        kind: ClusterImageTemplate
+        name: image-builder-from-previous-step
+      sources:
+        - resource: lint-source
+          name: source
+    - name: deploy
+      templateRef:
+        kind: ClusterTemplate
+        name: app-deploy-from-sc-image
+      images:
+        - resource: build-image
+          name: built-image
