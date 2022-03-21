@@ -206,4 +206,55 @@ var _ = Describe("Workload", func() {
 			Expect(jsonValue).NotTo(ContainSubstring("omitempty"))
 		})
 	})
+
+	FDescribe("Workload validations", func() {
+		var workload *v1alpha1.Workload
+		BeforeEach(func() {
+			workload = &v1alpha1.Workload{}
+		})
+		Context("Workload has a name", func() {
+			Context("the name is bad", func() {
+				BeforeEach(func() {
+					workload.Name = "java-web-app-2.6"
+				})
+				It("rejects the workload", func() {
+					Expect(workload.ValidateCreate()).To(MatchError(ContainSubstring("workload name is not a DNS 1035 label")))
+				})
+			})
+			Context("the name is good", func() {
+				BeforeEach(func() {
+					workload.Name = "java-web-app-2-6"
+				})
+				It("accepts the workload", func() {
+					Expect(workload.ValidateCreate()).NotTo(HaveOccurred())
+				})
+			})
+
+		})
+
+		Context("Workload has a generateName", func() {
+			Context("the generateName is bad", func() {
+				BeforeEach(func() {
+					workload.GenerateName = "java-web-app-2.6"
+				})
+				It("rejects the workload", func() {
+					Expect(workload.ValidateCreate()).To(MatchError(ContainSubstring("workload generateName is not a DNS 1035 label prefix")))
+				})
+			})
+			Context("the generateName is good", func() {
+				BeforeEach(func() {
+					workload.GenerateName = "java-web-app-2-6"
+				})
+				It("accepts the workload", func() {
+					Expect(workload.ValidateCreate()).NotTo(HaveOccurred())
+				})
+			})
+		})
+
+		Context("Workload does not have a name or a generateName", func() {
+			It("rejects the workload", func() {
+				Expect(workload.ValidateCreate()).To(MatchError(ContainSubstring("name or generateName is required")))
+			})
+		})
+	})
 })

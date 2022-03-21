@@ -19,8 +19,13 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 const (
@@ -170,6 +175,49 @@ type WorkloadList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Workload `json:"items"`
+}
+
+var _ webhook.Validator = &Workload{}
+
+func (w *Workload) ValidateCreate() error {
+	err := w.validate()
+	if err != nil {
+		return fmt.Errorf("error validating workload [%s]: %w", w.Name, err)
+	}
+	return nil
+}
+
+func (w *Workload) ValidateUpdate(_ runtime.Object) error {
+	err := w.validate()
+	if err != nil {
+		return fmt.Errorf("error validating workload [%s]: %w", w.Name, err)
+	}
+	return nil
+}
+
+func (w *Workload) ValidateDelete() error {
+	return nil
+}
+
+func (w *Workload) validate() error {
+	if w.GetGenerateName() != "" {
+		msgs := validation.NameIsDNS1035Label(w.GetGenerateName(), true)
+		if len(msgs) > 0 {
+			return fmt.Errorf("workload generateName is not a DNS 1035 label prefix: %v", msgs)
+		}
+	}
+	if w.GetName() != "" {
+		msgs := validation.NameIsDNS1035Label(w.Name, false)
+		if len(msgs) > 0 {
+			return fmt.Errorf("workload name is not a DNS 1035 label: %v", msgs)
+		}
+	}
+
+	if w.GetGenerateName() == "" && w.GetName() == "" {
+		return fmt.Errorf("name or generateName is required")
+	}
+
+	return nil
 }
 
 func init() {
