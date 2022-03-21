@@ -207,7 +207,7 @@ var _ = Describe("Workload", func() {
 		})
 	})
 
-	FDescribe("Workload validations", func() {
+	Describe("Workload validations", func() {
 		var workload *v1alpha1.Workload
 		BeforeEach(func() {
 			workload = &v1alpha1.Workload{}
