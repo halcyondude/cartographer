@@ -110,56 +110,63 @@ func registerWorkloadController(mgr manager.Manager) error {
 		DependencyTracker:       dependency.NewDependencyTracker(2*defaultResyncTime, mgr.GetLogger().WithName("tracker-workload")),
 	}
 
-	ctrl, err := pkgcontroller.New("workload", mgr, pkgcontroller.Options{
-		Reconciler: reconciler,
-	})
+	err := reconciler.SetupWithManager(mgr)
 	if err != nil {
-		return fmt.Errorf("controller new: %w", err)
-	}
-
-	reconciler.StampedTracker = &external.ObjectTracker{Controller: ctrl}
-
-	if err := ctrl.Watch(
-		&source.Kind{Type: &v1alpha1.Workload{}},
-		&handler.EnqueueRequestForObject{},
-	); err != nil {
-		return fmt.Errorf("watch: %w", err)
-	}
-
-	mapper := Mapper{
-		Client:  mgr.GetClient(),
-		Logger:  mgr.GetLogger().WithName("workload"),
-		Tracker: reconciler.DependencyTracker,
-	}
-
-	watches := map[client.Object]handler.MapFunc{
-		&v1alpha1.ClusterSupplyChain{}: mapper.ClusterSupplyChainToWorkloadRequests,
-		&corev1.ServiceAccount{}:       mapper.ServiceAccountToWorkloadRequests,
-		&rbacv1.Role{}:                 mapper.RoleToWorkloadRequests,
-		&rbacv1.RoleBinding{}:          mapper.RoleBindingToWorkloadRequests,
-		&rbacv1.ClusterRole{}:          mapper.ClusterRoleToWorkloadRequests,
-		&rbacv1.ClusterRoleBinding{}:   mapper.ClusterRoleBindingToWorkloadRequests,
-	}
-
-	for kindType, mapFunc := range watches {
-		if err := ctrl.Watch(
-			&source.Kind{Type: kindType},
-			handler.EnqueueRequestsFromMapFunc(mapFunc),
-		); err != nil {
-			return fmt.Errorf("watch %T: %w", kindType, err)
-		}
-	}
-
-	for _, template := range v1alpha1.ValidSupplyChainTemplates {
-		if err := ctrl.Watch(
-			&source.Kind{Type: template},
-			enqueuer.EnqueueTracked(template, reconciler.DependencyTracker, mgr.GetScheme()),
-		); err != nil {
-			return fmt.Errorf("watch %T: %w", template, err)
-		}
+		panic(err)
 	}
 
 	return nil
+
+	//ctrl, err := pkgcontroller.New("workload", mgr, pkgcontroller.Options{
+	//	Reconciler: reconciler,
+	//})
+	//if err != nil {
+	//	return fmt.Errorf("controller new: %w", err)
+	//}
+	//
+	//reconciler.StampedTracker = &external.ObjectTracker{Controller: ctrl}
+
+	//if err := ctrl.Watch(
+	//	&source.Kind{Type: &v1alpha1.Workload{}},
+	//	&handler.EnqueueRequestForObject{},
+	//); err != nil {
+	//	return fmt.Errorf("watch: %w", err)
+	//}
+
+	//mapper := Mapper{
+	//	Client:  mgr.GetClient(),
+	//	Logger:  mgr.GetLogger().WithName("workload"),
+	//	Tracker: reconciler.DependencyTracker,
+	//}
+
+	//watches := map[client.Object]handler.MapFunc{
+	//	&v1alpha1.ClusterSupplyChain{}: mapper.ClusterSupplyChainToWorkloadRequests,
+	//	&corev1.ServiceAccount{}:       mapper.ServiceAccountToWorkloadRequests,
+	//	&rbacv1.Role{}:                 mapper.RoleToWorkloadRequests,
+	//	&rbacv1.RoleBinding{}:          mapper.RoleBindingToWorkloadRequests,
+	//	&rbacv1.ClusterRole{}:          mapper.ClusterRoleToWorkloadRequests,
+	//	&rbacv1.ClusterRoleBinding{}:   mapper.ClusterRoleBindingToWorkloadRequests,
+	//}
+
+	//for kindType, mapFunc := range watches {
+	//	if err := ctrl.Watch(
+	//		&source.Kind{Type: kindType},
+	//		handler.EnqueueRequestsFromMapFunc(mapFunc),
+	//	); err != nil {
+	//		return fmt.Errorf("watch %T: %w", kindType, err)
+	//	}
+	//}
+
+	//for _, template := range v1alpha1.ValidSupplyChainTemplates {
+	//	if err := ctrl.Watch(
+	//		&source.Kind{Type: template},
+	//		enqueuer.EnqueueTracked(template, reconciler.DependencyTracker, mgr.GetScheme()),
+	//	); err != nil {
+	//		return fmt.Errorf("watch %T: %w", template, err)
+	//	}
+	//}
+
+	//return nil
 }
 
 func registerSupplyChainController(mgr manager.Manager) error {

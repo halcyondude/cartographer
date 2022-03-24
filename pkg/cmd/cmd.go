@@ -17,6 +17,12 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/vmware-tanzu/cartographer/pkg/conditions"
+	"github.com/vmware-tanzu/cartographer/pkg/controller/workload"
+	realizerclient "github.com/vmware-tanzu/cartographer/pkg/realizer/client"
+	realizerworkload "github.com/vmware-tanzu/cartographer/pkg/realizer/workload"
+	"github.com/vmware-tanzu/cartographer/pkg/repository"
+	"github.com/vmware-tanzu/cartographer/pkg/tracker/dependency"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,8 +66,12 @@ func (cmd *Command) Execute(ctx context.Context) error {
 		return fmt.Errorf("manager new: %w", err)
 	}
 
-	if err := registrar.RegisterControllers(mgr); err != nil {
-		return fmt.Errorf("register controllers: %w", err)
+	//if err := registrar.RegisterControllers(mgr); err != nil {
+	//	return fmt.Errorf("register controllers: %w", err)
+	//}
+
+	if err := registerWorkloadController(mgr); err != nil {
+		return fmt.Errorf("register workload controller: %w", err)
 	}
 
 	if err := registrar.IndexResources(ctx, mgr); err != nil {
@@ -71,6 +81,8 @@ func (cmd *Command) Execute(ctx context.Context) error {
 	if cmd.CertDir == "" {
 		l.Info("Not registering the webhook server. Must pass a directory containing tls.crt and tls.key to --cert-dir")
 	} else {
+		// WIP - How can we call workload.SetupWebhookWithManager
+
 		if err := controllerruntime.NewWebhookManagedBy(mgr).
 			For(&v1alpha1.ClusterSupplyChain{}).
 			Complete(); err != nil {
@@ -110,6 +122,28 @@ func (cmd *Command) Execute(ctx context.Context) error {
 
 	if err := mgr.Start(ctx); err != nil {
 		return fmt.Errorf("manager start: %w", err)
+	}
+
+	return nil
+}
+
+func registerWorkloadController(mgr manager.Manager) error {
+	repo := repository.NewRepository(
+		mgr.GetClient(),
+		repository.NewCache(mgr.GetLogger().WithName("workload-repo-cache")),
+	)
+
+	reconciler := &workload.Reconciler{
+		Repo:                    repo,
+		ConditionManagerBuilder: conditions.NewConditionManager,
+		ResourceRealizerBuilder: realizerworkload.NewResourceRealizerBuilder(repository.NewRepository, realizerclient.NewClientBuilder(mgr.GetConfig()), repository.NewCache(mgr.GetLogger().WithName("workload-stamping-repo-cache"))),
+		Realizer:                realizerworkload.NewRealizer(),
+		DependencyTracker:       dependency.NewDependencyTracker(2*defaultResyncTime, mgr.GetLogger().WithName("tracker-workload")),
+	}
+
+	err := reconciler.SetupWithManager(mgr)
+	if err != nil {
+		panic(err)
 	}
 
 	return nil
