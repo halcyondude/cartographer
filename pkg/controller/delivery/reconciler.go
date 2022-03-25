@@ -17,6 +17,8 @@ package delivery
 import (
 	"context"
 	"fmt"
+	"github.com/vmware-tanzu/cartographer/pkg/enqueuer"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -35,6 +37,20 @@ type Reconciler struct {
 	Repo              repository.Repository
 	DependencyTracker dependency.DependencyTracker
 	conditionManager  conditions.ConditionManager
+}
+
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(&v1alpha1.ClusterDelivery{})
+
+	for _, template := range v1alpha1.ValidDeliveryTemplates {
+		builder = builder.Watches(
+			&source.Kind{Type: template},
+			enqueuer.EnqueueTracked(template, r.DependencyTracker, mgr.GetScheme()),
+		)
+	}
+
+	return builder.Complete(r)
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (ctrl.Result, error) {

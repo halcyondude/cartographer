@@ -17,6 +17,8 @@ package supplychain
 import (
 	"context"
 	"fmt"
+	"github.com/vmware-tanzu/cartographer/pkg/enqueuer"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +42,20 @@ type Reconciler struct {
 	ConditionManagerBuilder conditions.ConditionManagerBuilder
 	conditionManager        conditions.ConditionManager
 	DependencyTracker       dependency.DependencyTracker
+}
+
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(&v1alpha1.ClusterSupplyChain{})
+
+	for _, template := range v1alpha1.ValidSupplyChainTemplates {
+		builder = builder.Watches(
+			&source.Kind{Type: template},
+			enqueuer.EnqueueTracked(template, r.DependencyTracker, mgr.GetScheme()),
+		)
+	}
+
+	return builder.Complete(r)
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

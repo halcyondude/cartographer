@@ -19,7 +19,12 @@ package deliverable
 import (
 	"context"
 	"fmt"
+	"github.com/vmware-tanzu/cartographer/pkg/enqueuer"
+	"github.com/vmware-tanzu/cartographer/pkg/mapper"
 	"reflect"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -52,6 +57,50 @@ type Reconciler struct {
 	StampedTracker          stamped.StampedTracker
 	DependencyTracker       dependency.DependencyTracker
 	conditionManager        conditions.ConditionManager
+}
+
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(&v1alpha1.Deliverable{})
+
+	mapper := mapper.Mapper{
+		Client:  mgr.GetClient(),
+		Logger:  mgr.GetLogger().WithName("deliverable"),
+		Tracker: r.DependencyTracker,
+	}
+
+	watches := map[client.Object]handler.MapFunc{
+		&v1alpha1.ClusterDelivery{}:  mapper.ClusterDeliveryToDeliverableRequests,
+		&corev1.ServiceAccount{}:     mapper.ServiceAccountToDeliverableRequests,
+		&rbacv1.Role{}:               mapper.RoleToDeliverableRequests,
+		&rbacv1.RoleBinding{}:        mapper.RoleBindingToDeliverableRequests,
+		&rbacv1.ClusterRole{}:        mapper.ClusterRoleToDeliverableRequests,
+		&rbacv1.ClusterRoleBinding{}: mapper.ClusterRoleBindingToDeliverableRequests,
+	}
+
+	for kindType, mapFunc := range watches {
+		// TODO: Do we need this assignment?
+		builder = builder.Watches(
+			&source.Kind{Type: kindType},
+			handler.EnqueueRequestsFromMapFunc(mapFunc),
+		)
+	}
+
+	for _, template := range v1alpha1.ValidDeliveryTemplates {
+		// TODO: Do we need this assignment?
+		builder = builder.Watches(
+			&source.Kind{Type: template},
+			enqueuer.EnqueueTracked(template, r.DependencyTracker, mgr.GetScheme()),
+		)
+	}
+
+	controller, err := builder.Build(r)
+	if err != nil {
+		return fmt.Errorf("failed to build controller for deliverable: %w", err)
+	}
+	r.StampedTracker = &external.ObjectTracker{Controller: controller}
+
+	return nil
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

@@ -59,7 +59,6 @@ type Reconciler struct {
 }
 
 // TODO: kubebuilder:rbac
-
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Workload{})
@@ -97,7 +96,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	controller, err := builder.Build(r)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to build controller for workload: %w", err)
 	}
 	r.StampedTracker = &external.ObjectTracker{Controller: controller}
 
