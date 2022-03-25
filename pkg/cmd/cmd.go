@@ -28,7 +28,6 @@ import (
 	realizerclient "github.com/vmware-tanzu/cartographer/pkg/realizer/client"
 	realizerdeliverable "github.com/vmware-tanzu/cartographer/pkg/realizer/deliverable"
 	realizerrunnable "github.com/vmware-tanzu/cartographer/pkg/realizer/runnable"
-	realizerworkload "github.com/vmware-tanzu/cartographer/pkg/realizer/workload"
 	"github.com/vmware-tanzu/cartographer/pkg/repository"
 	"github.com/vmware-tanzu/cartographer/pkg/tracker/dependency"
 	corev1 "k8s.io/api/core/v1"
@@ -193,21 +192,7 @@ func registerControllers(mgr manager.Manager) error {
 }
 
 func registerWorkloadController(mgr manager.Manager) error {
-	repo := repository.NewRepository(
-		mgr.GetClient(),
-		repository.NewCache(mgr.GetLogger().WithName("workload-repo-cache")),
-	)
-
-	reconciler := &workload.Reconciler{
-		Repo:                    repo,
-		ConditionManagerBuilder: conditions.NewConditionManager,
-		ResourceRealizerBuilder: realizerworkload.NewResourceRealizerBuilder(repository.NewRepository, realizerclient.NewClientBuilder(mgr.GetConfig()), repository.NewCache(mgr.GetLogger().WithName("workload-stamping-repo-cache"))),
-		Realizer:                realizerworkload.NewRealizer(),
-		DependencyTracker:       dependency.NewDependencyTracker(2*defaultResyncTime, mgr.GetLogger().WithName("tracker-workload")),
-	}
-
-	err := reconciler.SetupWithManager(mgr)
-	if err != nil {
+	if err := (&workload.Reconciler{}).SetupWithManager(mgr); err != nil {
 		return fmt.Errorf("failed to setup with manager for workload: %w", err)
 	}
 

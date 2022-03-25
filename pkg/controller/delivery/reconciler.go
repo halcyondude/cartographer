@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/vmware-tanzu/cartographer/pkg/enqueuer"
+	"github.com/vmware-tanzu/cartographer/pkg/utils"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/go-logr/logr"
@@ -28,7 +29,6 @@ import (
 
 	"github.com/vmware-tanzu/cartographer/pkg/apis/v1alpha1"
 	"github.com/vmware-tanzu/cartographer/pkg/conditions"
-	"github.com/vmware-tanzu/cartographer/pkg/controller"
 	"github.com/vmware-tanzu/cartographer/pkg/repository"
 	"github.com/vmware-tanzu/cartographer/pkg/tracker/dependency"
 )
@@ -89,7 +89,7 @@ func (r *Reconciler) reconcileDelivery(ctx context.Context, delivery *v1alpha1.C
 			if err != nil {
 				log.Error(err, "failed to get delivery cluster template", "template",
 					fmt.Sprintf("%s/%s", resource.TemplateRef.Kind, resource.TemplateRef.Name))
-				return controller.NewUnhandledError(fmt.Errorf("failed to get delivery cluster template: %w", err))
+				return utils.NewUnhandledError(fmt.Errorf("failed to get delivery cluster template: %w", err))
 			}
 
 			if !found {
@@ -101,7 +101,7 @@ func (r *Reconciler) reconcileDelivery(ctx context.Context, delivery *v1alpha1.C
 				if err != nil {
 					log.Error(err, "failed to get delivery cluster template", "template",
 						fmt.Sprintf("%s/%s", resource.TemplateRef.Kind, resource.TemplateRef.Name))
-					return controller.NewUnhandledError(fmt.Errorf("failed to get delivery cluster template: %w", err))
+					return utils.NewUnhandledError(fmt.Errorf("failed to get delivery cluster template: %w", err))
 				}
 
 				if !found {
@@ -158,7 +158,7 @@ func (r *Reconciler) completeReconciliation(ctx context.Context, delivery *v1alp
 	}
 
 	if err != nil {
-		if controller.IsUnhandledError(err) {
+		if utils.IsUnhandledError(err) {
 			log.Error(err, "unhandled error reconciling delivery")
 			return ctrl.Result{}, err
 		}

@@ -39,7 +39,6 @@ import (
 
 	"github.com/vmware-tanzu/cartographer/pkg/apis/v1alpha1"
 	"github.com/vmware-tanzu/cartographer/pkg/conditions"
-	"github.com/vmware-tanzu/cartographer/pkg/controller"
 	"github.com/vmware-tanzu/cartographer/pkg/logger"
 	realizer "github.com/vmware-tanzu/cartographer/pkg/realizer/deliverable"
 	"github.com/vmware-tanzu/cartographer/pkg/repository"
@@ -140,7 +139,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	deliveryGVK, err := utils.GetObjectGVK(delivery, r.Repo.GetScheme())
 	if err != nil {
 		log.Error(err, "failed to get object gvk for delivery")
-		return r.completeReconciliation(ctx, deliverable, deliverable.Status.Resources, controller.NewUnhandledError(
+		return r.completeReconciliation(ctx, deliverable, deliverable.Status.Resources, utils.NewUnhandledError(
 			fmt.Errorf("failed to get object gvk for delivery [%s]: %w", delivery.Name, err)))
 	}
 
@@ -165,7 +164,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	resourceRealizer, err := r.ResourceRealizerBuilder(secret, deliverable, r.Repo, delivery.Spec.Params)
 	if err != nil {
 		r.conditionManager.AddPositive(ResourceRealizerBuilderErrorCondition(err))
-		return r.completeReconciliation(ctx, deliverable, deliverable.Status.Resources, controller.NewUnhandledError(fmt.Errorf("failed to build resource realizer: %w", err)))
+		return r.completeReconciliation(ctx, deliverable, deliverable.Status.Resources, utils.NewUnhandledError(fmt.Errorf("failed to build resource realizer: %w", err)))
 	}
 
 	realizedResources, err := r.Realizer.Realize(ctx, resourceRealizer, delivery, deliverable.Status.Resources)
@@ -174,13 +173,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		switch typedErr := err.(type) {
 		case realizer.GetTemplateError:
 			r.conditionManager.AddPositive(TemplateObjectRetrievalFailureCondition(typedErr))
-			err = controller.NewUnhandledError(err)
+			err = utils.NewUnhandledError(err)
 		case realizer.StampError:
 			r.conditionManager.AddPositive(TemplateStampFailureCondition(typedErr))
 		case realizer.ApplyStampedObjectError:
 			r.conditionManager.AddPositive(TemplateRejectedByAPIServerCondition(typedErr))
 			if !kerrors.IsForbidden(typedErr.Err) {
-				err = controller.NewUnhandledError(err)
+				err = utils.NewUnhandledError(err)
 			}
 		case realizer.RetrieveOutputError:
 			switch typedErr.Err.(type) {
@@ -201,7 +200,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			r.conditionManager.AddPositive(TemplateOptionsMatchErrorCondition(typedErr))
 		default:
 			r.conditionManager.AddPositive(UnknownResourceErrorCondition(typedErr))
-			err = controller.NewUnhandledError(err)
+			err = utils.NewUnhandledError(err)
 		}
 	} else {
 		if log.V(logger.DEBUG).Enabled() {
@@ -232,7 +231,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if trackingError != nil {
 			log.Error(err, "failed to add informer for object",
 				"object", resource.StampedRef)
-			err = controller.NewUnhandledError(trackingError)
+			err = utils.NewUnhandledError(trackingError)
 		} else {
 			log.V(logger.DEBUG).Info("added informer for object",
 				"object", resource.StampedRef)
@@ -259,7 +258,7 @@ func (r *Reconciler) completeReconciliation(ctx context.Context, deliverable *v1
 	}
 
 	if err != nil {
-		if controller.IsUnhandledError(err) {
+		if utils.IsUnhandledError(err) {
 			log.Error(err, "unhandled error reconciling deliverable")
 			return ctrl.Result{}, err
 		}
@@ -376,7 +375,7 @@ func (r *Reconciler) getDeliveriesForDeliverable(ctx context.Context, deliverabl
 	deliveries, err := r.Repo.GetDeliveriesForDeliverable(ctx, deliverable)
 	if err != nil {
 		log.Error(err, "failed to get deliveries for deliverable")
-		return nil, controller.NewUnhandledError(fmt.Errorf("failed to get deliveries for deliverable [%s/%s]: %w",
+		return nil, utils.NewUnhandledError(fmt.Errorf("failed to get deliveries for deliverable [%s/%s]: %w",
 			deliverable.Namespace, deliverable.Name, err))
 	}
 
