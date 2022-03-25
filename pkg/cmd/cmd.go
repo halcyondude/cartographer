@@ -17,23 +17,24 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
+	"github.com/vmware-tanzu/cartographer/pkg/apis/v1alpha1"
 	"github.com/vmware-tanzu/cartographer/pkg/conditions"
 	"github.com/vmware-tanzu/cartographer/pkg/controller/workload"
 	realizerclient "github.com/vmware-tanzu/cartographer/pkg/realizer/client"
 	realizerworkload "github.com/vmware-tanzu/cartographer/pkg/realizer/workload"
+	"github.com/vmware-tanzu/cartographer/pkg/registrar"
 	"github.com/vmware-tanzu/cartographer/pkg/repository"
 	"github.com/vmware-tanzu/cartographer/pkg/tracker/dependency"
-
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"github.com/vmware-tanzu/cartographer/pkg/apis/v1alpha1"
-	"github.com/vmware-tanzu/cartographer/pkg/registrar"
+	"time"
 )
+
+const defaultResyncTime = 10 * time.Hour
 
 type Command struct {
 	Port    int
@@ -66,9 +67,9 @@ func (cmd *Command) Execute(ctx context.Context) error {
 		return fmt.Errorf("manager new: %w", err)
 	}
 
-	//if err := registrar.RegisterControllers(mgr); err != nil {
-	//	return fmt.Errorf("register controllers: %w", err)
-	//}
+	if err := registrar.RegisterControllers(mgr); err != nil {
+		return fmt.Errorf("register controllers: %w", err)
+	}
 
 	if err := registerWorkloadController(mgr); err != nil {
 		return fmt.Errorf("register workload controller: %w", err)
@@ -81,8 +82,9 @@ func (cmd *Command) Execute(ctx context.Context) error {
 	if cmd.CertDir == "" {
 		l.Info("Not registering the webhook server. Must pass a directory containing tls.crt and tls.key to --cert-dir")
 	} else {
-		// WIP - How can we call workload.SetupWebhookWithManager
-
+		if err = (&v1alpha1.Workload{}).SetupWebhookWithManager(mgr); err != nil {
+			return fmt.Errorf("workload webhook: %w", err)
+		}
 		if err := controllerruntime.NewWebhookManagedBy(mgr).
 			For(&v1alpha1.ClusterSupplyChain{}).
 			Complete(); err != nil {

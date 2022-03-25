@@ -399,7 +399,7 @@ var _ = Describe("Stamping a resource on Runnable Creation", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("stamps the templated object once", func() {
+				XIt("stamps the templated object once", func() {
 					resourceList := &v1.ResourceQuotaList{}
 
 					Eventually(func() (int, error) {

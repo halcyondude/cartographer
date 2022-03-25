@@ -2,9 +2,8 @@
 package registrarfakes
 
 import (
+	"github.com/vmware-tanzu/cartographer/pkg/mapper"
 	"sync"
-
-	"github.com/vmware-tanzu/cartographer/pkg/registrar"
 )
 
 type FakeLogger struct {
@@ -77,4 +76,4 @@ func (fake *FakeLogger) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ registrar.Logger = new(FakeLogger)
+var _ mapper.Logger = new(FakeLogger)

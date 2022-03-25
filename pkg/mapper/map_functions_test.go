@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package registrar_test
+package mapper_test
 
 import (
 	"context"
 	"fmt"
+	"github.com/vmware-tanzu/cartographer/pkg/mapper"
 	"reflect"
 
 	. "github.com/onsi/ginkgo"
@@ -30,14 +31,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/vmware-tanzu/cartographer/pkg/apis/v1alpha1"
-	"github.com/vmware-tanzu/cartographer/pkg/registrar"
 	"github.com/vmware-tanzu/cartographer/pkg/registrar/registrarfakes"
 	"github.com/vmware-tanzu/cartographer/pkg/tracker/dependency/dependencyfakes"
 )
 
 var _ = Describe("MapFunctions", func() {
 	var (
-		m           *registrar.Mapper
+		m           *mapper.Mapper
 		fakeLogger  *registrarfakes.FakeLogger
 		fakeClient  *registrarfakes.FakeClient
 		fakeTracker *dependencyfakes.FakeDependencyTracker
@@ -48,7 +48,7 @@ var _ = Describe("MapFunctions", func() {
 		fakeClient = &registrarfakes.FakeClient{}
 		fakeTracker = &dependencyfakes.FakeDependencyTracker{}
 
-		m = &registrar.Mapper{
+		m = &mapper.Mapper{
 			Client:  fakeClient,
 			Logger:  fakeLogger,
 			Tracker: fakeTracker,

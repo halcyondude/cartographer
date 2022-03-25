@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/vmware-tanzu/cartographer/pkg/enqueuer"
-	"github.com/vmware-tanzu/cartographer/pkg/registrar"
+	"github.com/vmware-tanzu/cartographer/pkg/mapper"
 	"reflect"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,7 +64,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Workload{})
 
-	mapper := registrar.Mapper{
+	mapper := mapper.Mapper{
 		Client:  mgr.GetClient(),
 		Logger:  mgr.GetLogger().WithName("workload"),
 		Tracker: r.DependencyTracker,

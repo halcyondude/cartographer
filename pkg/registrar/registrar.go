@@ -19,6 +19,7 @@ package registrar
 import (
 	"context"
 	"fmt"
+	mapper2 "github.com/vmware-tanzu/cartographer/pkg/mapper"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -38,12 +39,10 @@ import (
 	"github.com/vmware-tanzu/cartographer/pkg/controller/delivery"
 	"github.com/vmware-tanzu/cartographer/pkg/controller/runnable"
 	"github.com/vmware-tanzu/cartographer/pkg/controller/supplychain"
-	"github.com/vmware-tanzu/cartographer/pkg/controller/workload"
 	"github.com/vmware-tanzu/cartographer/pkg/enqueuer"
 	realizerclient "github.com/vmware-tanzu/cartographer/pkg/realizer/client"
 	realizerdeliverable "github.com/vmware-tanzu/cartographer/pkg/realizer/deliverable"
 	realizerrunnable "github.com/vmware-tanzu/cartographer/pkg/realizer/runnable"
-	realizerworkload "github.com/vmware-tanzu/cartographer/pkg/realizer/workload"
 	"github.com/vmware-tanzu/cartographer/pkg/repository"
 	"github.com/vmware-tanzu/cartographer/pkg/tracker/dependency"
 )
@@ -73,9 +72,9 @@ func AddToScheme(scheme *runtime.Scheme) error {
 }
 
 func RegisterControllers(mgr manager.Manager) error {
-	if err := registerWorkloadController(mgr); err != nil {
-		return fmt.Errorf("register workload controller: %w", err)
-	}
+	//if err := registerWorkloadController(mgr); err != nil {
+	//	return fmt.Errorf("register workload controller: %w", err)
+	//}
 
 	if err := registerSupplyChainController(mgr); err != nil {
 		return fmt.Errorf("register supply-chain controller: %w", err)
@@ -96,78 +95,78 @@ func RegisterControllers(mgr manager.Manager) error {
 	return nil
 }
 
-func registerWorkloadController(mgr manager.Manager) error {
-	repo := repository.NewRepository(
-		mgr.GetClient(),
-		repository.NewCache(mgr.GetLogger().WithName("workload-repo-cache")),
-	)
-
-	reconciler := &workload.Reconciler{
-		Repo:                    repo,
-		ConditionManagerBuilder: conditions.NewConditionManager,
-		ResourceRealizerBuilder: realizerworkload.NewResourceRealizerBuilder(repository.NewRepository, realizerclient.NewClientBuilder(mgr.GetConfig()), repository.NewCache(mgr.GetLogger().WithName("workload-stamping-repo-cache"))),
-		Realizer:                realizerworkload.NewRealizer(),
-		DependencyTracker:       dependency.NewDependencyTracker(2*defaultResyncTime, mgr.GetLogger().WithName("tracker-workload")),
-	}
-
-	err := reconciler.SetupWithManager(mgr)
-	if err != nil {
-		panic(err)
-	}
-
-	return nil
-
-	//ctrl, err := pkgcontroller.New("workload", mgr, pkgcontroller.Options{
-	//	Reconciler: reconciler,
-	//})
-	//if err != nil {
-	//	return fmt.Errorf("controller new: %w", err)
-	//}
-	//
-	//reconciler.StampedTracker = &external.ObjectTracker{Controller: ctrl}
-
-	//if err := ctrl.Watch(
-	//	&source.Kind{Type: &v1alpha1.Workload{}},
-	//	&handler.EnqueueRequestForObject{},
-	//); err != nil {
-	//	return fmt.Errorf("watch: %w", err)
-	//}
-
-	//mapper := Mapper{
-	//	Client:  mgr.GetClient(),
-	//	Logger:  mgr.GetLogger().WithName("workload"),
-	//	Tracker: reconciler.DependencyTracker,
-	//}
-
-	//watches := map[client.Object]handler.MapFunc{
-	//	&v1alpha1.ClusterSupplyChain{}: mapper.ClusterSupplyChainToWorkloadRequests,
-	//	&corev1.ServiceAccount{}:       mapper.ServiceAccountToWorkloadRequests,
-	//	&rbacv1.Role{}:                 mapper.RoleToWorkloadRequests,
-	//	&rbacv1.RoleBinding{}:          mapper.RoleBindingToWorkloadRequests,
-	//	&rbacv1.ClusterRole{}:          mapper.ClusterRoleToWorkloadRequests,
-	//	&rbacv1.ClusterRoleBinding{}:   mapper.ClusterRoleBindingToWorkloadRequests,
-	//}
-
-	//for kindType, mapFunc := range watches {
-	//	if err := ctrl.Watch(
-	//		&source.Kind{Type: kindType},
-	//		handler.EnqueueRequestsFromMapFunc(mapFunc),
-	//	); err != nil {
-	//		return fmt.Errorf("watch %T: %w", kindType, err)
-	//	}
-	//}
-
-	//for _, template := range v1alpha1.ValidSupplyChainTemplates {
-	//	if err := ctrl.Watch(
-	//		&source.Kind{Type: template},
-	//		enqueuer.EnqueueTracked(template, reconciler.DependencyTracker, mgr.GetScheme()),
-	//	); err != nil {
-	//		return fmt.Errorf("watch %T: %w", template, err)
-	//	}
-	//}
-
-	//return nil
-}
+//func registerWorkloadController(mgr manager.Manager) error {
+//	repo := repository.NewRepository(
+//		mgr.GetClient(),
+//		repository.NewCache(mgr.GetLogger().WithName("workload-repo-cache")),
+//	)
+//
+//	reconciler := &workload.Reconciler{
+//		Repo:                    repo,
+//		ConditionManagerBuilder: conditions.NewConditionManager,
+//		ResourceRealizerBuilder: realizerworkload.NewResourceRealizerBuilder(repository.NewRepository, realizerclient.NewClientBuilder(mgr.GetConfig()), repository.NewCache(mgr.GetLogger().WithName("workload-stamping-repo-cache"))),
+//		Realizer:                realizerworkload.NewRealizer(),
+//		DependencyTracker:       dependency.NewDependencyTracker(2*defaultResyncTime, mgr.GetLogger().WithName("tracker-workload")),
+//	}
+//
+//	err := reconciler.SetupWithManager(mgr)
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	return nil
+//
+//	//ctrl, err := pkgcontroller.New("workload", mgr, pkgcontroller.Options{
+//	//	Reconciler: reconciler,
+//	//})
+//	//if err != nil {
+//	//	return fmt.Errorf("controller new: %w", err)
+//	//}
+//	//
+//	//reconciler.StampedTracker = &external.ObjectTracker{Controller: ctrl}
+//
+//	//if err := ctrl.Watch(
+//	//	&source.Kind{Type: &v1alpha1.Workload{}},
+//	//	&handler.EnqueueRequestForObject{},
+//	//); err != nil {
+//	//	return fmt.Errorf("watch: %w", err)
+//	//}
+//
+//	//mapper := Mapper{
+//	//	Client:  mgr.GetClient(),
+//	//	Logger:  mgr.GetLogger().WithName("workload"),
+//	//	Tracker: reconciler.DependencyTracker,
+//	//}
+//
+//	//watches := map[client.Object]handler.MapFunc{
+//	//	&v1alpha1.ClusterSupplyChain{}: mapper.ClusterSupplyChainToWorkloadRequests,
+//	//	&corev1.ServiceAccount{}:       mapper.ServiceAccountToWorkloadRequests,
+//	//	&rbacv1.Role{}:                 mapper.RoleToWorkloadRequests,
+//	//	&rbacv1.RoleBinding{}:          mapper.RoleBindingToWorkloadRequests,
+//	//	&rbacv1.ClusterRole{}:          mapper.ClusterRoleToWorkloadRequests,
+//	//	&rbacv1.ClusterRoleBinding{}:   mapper.ClusterRoleBindingToWorkloadRequests,
+//	//}
+//
+//	//for kindType, mapFunc := range watches {
+//	//	if err := ctrl.Watch(
+//	//		&source.Kind{Type: kindType},
+//	//		handler.EnqueueRequestsFromMapFunc(mapFunc),
+//	//	); err != nil {
+//	//		return fmt.Errorf("watch %T: %w", kindType, err)
+//	//	}
+//	//}
+//
+//	//for _, template := range v1alpha1.ValidSupplyChainTemplates {
+//	//	if err := ctrl.Watch(
+//	//		&source.Kind{Type: template},
+//	//		enqueuer.EnqueueTracked(template, reconciler.DependencyTracker, mgr.GetScheme()),
+//	//	); err != nil {
+//	//		return fmt.Errorf("watch %T: %w", template, err)
+//	//	}
+//	//}
+//
+//	//return nil
+//}
 
 func registerSupplyChainController(mgr manager.Manager) error {
 	repo := repository.NewRepository(
@@ -276,7 +275,7 @@ func registerDeliverableController(mgr manager.Manager) error {
 		return fmt.Errorf("watch: %w", err)
 	}
 
-	mapper := Mapper{
+	mapper := mapper2.Mapper{
 		Client:  mgr.GetClient(),
 		Logger:  mgr.GetLogger().WithName("deliverable"),
 		Tracker: reconciler.DependencyTracker,
@@ -343,7 +342,7 @@ func registerRunnableController(mgr manager.Manager) error {
 		return fmt.Errorf("watch [runnable-service]: %w", err)
 	}
 
-	mapper := Mapper{
+	mapper := mapper2.Mapper{
 		Client:  mgr.GetClient(),
 		Logger:  mgr.GetLogger().WithName("runnable"),
 		Tracker: reconciler.DependencyTracker,
